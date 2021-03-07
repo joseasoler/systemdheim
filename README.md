@@ -1,2 +1,2 @@
 # systemdheim
-systemd service for running Valheim dedicated servers on Linux
+systemd service for running Valheim dedicated servers on Linux.

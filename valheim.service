@@ -1,0 +1,37 @@
+# Before installing you must modify SYSTEMDHEIM_NAME, SYSTEMDHEIM_DISPLAY, SYSTEMDHEIM_WORLD and SYSTEMDHEIM_PASSWORD.
+# Minimum password length is 5 characters. Password can't be in the server name.
+# You also need to create a user called steam, and to have steamcmd installed.
+# Ports 2456-2458 must be forwarded to your server through your local router/firewall.
+
+# To install the service, use:
+# sudo cp valheim.service /etc/systemd/system
+# sudo systemctl daemon-reload
+# sudo systemctl enable --now valheim.service
+
+[Unit]
+Description=Valheim
+# This service requires a network.
+Wants=network.target
+# Only start the server after the network is up.
+After=network-online.target
+
+[Service]
+Type=simple
+User=steam
+WorkingDirectory=/home/steam/valheim
+Environment="LD_LIBRARY_PATH=/home/steam/valheim/linux64:$LD_LIBRARY_PATH"
+Environment="SteamAppId=892970"
+# Update the server before starting it.
+ExecStartPre=steamcmd +login anonymous +force_install_dir /home/steam/valheim +app_update 896660 validate +quit
+ExecStart=/home/steam/valheim/valheim_server.x86_64 -nographics -batchmode -name "SYSTEMDHEIM_NAME" -displayname "SYSTEMDHEIM_DISPLAY" -port 2456 -world "SYSTEMDHEIM_WORLD" -password "SYSTEMDHEIM_PASSWORD" -public 1
+# Generate a new backup after stopping the server.
+ExecStopPost=bash -c 'tar -zcvf /home/steam/saves/valheim_$$(date +%%Y%%m%%d_%%H%%M%%S).tar.gz /home/steam/.config/unity3d/IronGate/Valheim'
+# Keep only the 10 newest backup files.
+ExecStopPost=bash -c 'find /home/steam/saves/ -maxdepth 1 -mindepth 1 -name "*.tar.gz" -type f -printf "%%T@ %%p\n" | sort -n -r | tail -n +11 | awk "{print $$2}" | xargs rm -f'
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+
+[Install]
+# Start the server when the system is ready to set up a non-graphical shell.
+WantedBy=multi-user.target
